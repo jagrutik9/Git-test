@@ -228,7 +228,7 @@ void read_hist_loop(int fd)
     	sprintf(buffer,"%s",ctime(&timer1));
     
     	FILE * fp;
-    	fp = fopen("/home/debian/file.txt", "a");
+    	fp = fopen("/home/debian/opc_data.txt", "a");
     	fprintf(fp, "\n%s", buffer);
 	for(i = 0; i < 86; i++)
 	{
