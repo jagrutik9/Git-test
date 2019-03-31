@@ -18,6 +18,11 @@ void init_power_state(int fd);
 void turn_on_fan(int fd);
 void read_hist_loop(int fd);
 void turn_off(int fd);
+void read_info_string(int fd);
+void set_fan_digital_pot(int fd);
+void read_dac_power_status(int fd);
+void set_bin_index(int fd);
+void read_config_variable(int fd);
 
 int main()
 {
@@ -56,6 +61,11 @@ int main()
 	   return -1;
 	 }
 	
+	read_info_string(fd);
+	set_fan_digital_pot(fd);
+	read_dac_power_status(fd);
+	set_bin_index(fd);
+	read_config_variable(fd);
 	init_power_state(fd);
 	turn_on_fan(fd);
 	read_hist_loop(fd);
@@ -146,11 +156,11 @@ void turn_on_fan(int fd)
 {
     int j = 0;
     unsigned char data1 = 0x03, data2 = 0x07, receive;
-    printf("TURN ON Fan");
+    printf("TURN ON Fan\n");
     transfer_byte(fd, &data1, &receive);
     sleep(5);
-    printf("Sleep for 5 seconds");
-    printf("Initiate control of Power State 2");
+    printf("Sleep for 5 seconds\n");
+    printf("Initiate control of Power State 2\n");
     transfer_byte(fd, &data1, &receive);
     while(receive != 0xF3){
         usleep(10000);
@@ -166,10 +176,10 @@ void turn_on_fan(int fd)
         }
     }
 		usleep(20);
-		printf("Turn ON Laser");
+		printf("Turn ON Laser\n");
 		transfer_byte(fd, &data2, &receive);
 		sleep(1);
-		printf("Sleep for 1s");
+		printf("Sleep for 1s\n");
 }
 
 void read_hist_loop(int fd)
@@ -276,4 +286,215 @@ void turn_off(int fd)
     sleep(1);
     printf("Turn Off\n");
     printf("Reset\n");
+}
+
+void read_info_string(int fd)
+{
+    int j = 0, i;
+    unsigned char infostring[60] = {};
+    unsigned char data1 = 0x00, data2 = 0x3F, receive;
+    transfer_byte(fd, &data1, &receive);
+    sleep(2);
+    transfer_byte(fd, &data2, &receive);
+    while(receive != 0xF3)
+        {
+            usleep(10000);
+            transfer_byte(fd, &data2, &receive);
+            printf("Received byte: %.2X\n", receive);
+            printf("Wait F3\n");
+            j = j + 1;
+            printf("Wait F3\n");
+            if(j == 30){
+                printf("Too many error wait 5 s for buffer to reset: %d\n", j);
+                sleep(5);
+                j = 0;
+            }
+        }
+    usleep(100000);
+    for(i = 0; i < 60; i++)
+    {
+        transfer_byte(fd, &data2, &receive);
+        printf("Infostring: %.2X\n", receive);
+        infostring[i] = receive;
+        if(i == 59)
+        {
+            printf("Received byte: %.2X\n", receive);
+            //i = 0;
+        }
+        usleep(10000);
+    }
+    for(i = 0; i < 60; i++)
+    {
+        printf("%c ", infostring[i]);
+    }    
+}
+
+void set_fan_digital_pot(int fd)
+{
+    int j = 0;
+    unsigned char data1 = 0x42, data2 = 0x01, data3 = 168, receive;
+    transfer_byte(fd, &data1, &receive);
+    usleep(10000);
+    while(receive != 0xF3)
+        {
+            usleep(10000);
+            transfer_byte(fd, &data1, &receive);
+            printf("Received byte: %.2X\n", receive);
+            printf("Wait F3\n");
+            j = j + 1;
+            printf("Wait F3\n");
+            if(j == 30){
+                printf("Too many error wait 5 s for buffer to reset: %d\n", j);
+                sleep(5);
+                j = 0;
+            }
+        }
+    usleep(10000);
+    printf("Set fan or laser digital pot\n");
+    transfer_byte(fd, &data2, &receive);
+    printf("0x42: %u\n", receive);
+    transfer_byte(fd, &data3, &receive);
+    printf("Channel 1?: %u\n", receive);
+    usleep(100000);
+}
+
+void read_dac_power_status(int fd)
+{
+    int j = 0;
+    unsigned char data = 0x13, receive;
+    transfer_byte(fd, &data, &receive);
+    usleep(10000);
+    while(receive != 0xF3)
+        {
+            usleep(10000);
+            transfer_byte(fd, &data, &receive);
+            printf("Received byte: %.2X\n", receive);
+            printf("Wait F3\n");
+            j = j + 1;
+            printf("Wait F3\n");
+            if(j == 30){
+                printf("Too many error wait 5 s for buffer to reset: %d\n", j);
+                sleep(5);
+                j = 0;
+            }
+        }
+    usleep(10000);
+
+    transfer_byte(fd, &data, &receive);
+    printf("Fan ON ? : %u\n", receive);
+    usleep(10000);
+
+    transfer_byte(fd, &data, &receive);
+    printf("LaserDAC_ON ?: %u\n", receive);
+    usleep(10000);
+
+    transfer_byte(fd, &data, &receive);
+    printf("FanDACVal ?: %u\n", receive);
+    usleep(10000);
+
+    transfer_byte(fd, &data, &receive);
+    printf("LaserDACval ?: %u\n", receive);
+    usleep(10000);
+
+    transfer_byte(fd, &data, &receive);
+    printf("LaserSwitch ?: %u\n", receive);
+    usleep(10000);
+
+    transfer_byte(fd, &data, &receive);
+    printf("Gain and AutoGain Setting ?: %u\n", receive);
+    usleep(10000);
+}
+
+void set_bin_index(int fd)
+{
+    int j = 0;
+    unsigned char data1 = 0x05, data2 = 0x02, receive;
+    printf("Set bin index\n");
+    transfer_byte(fd, &data1, &receive);
+    usleep(10000);
+    while(receive != 0xF3)
+    {
+        usleep(10000);
+        transfer_byte(fd, &data1, &receive);
+        printf("Received byte: %.2X\n", receive);
+        printf("Wait F3\n");
+        j = j + 1;
+        printf("Wait F3\n");
+        if(j == 30)
+        {
+            printf("Too many error wait 5 s for buffer to reset: %d\n", j);
+            sleep(5);
+            j = 0;
+        }
+    }
+    usleep(10000);
+
+    printf("Ready: %u\n", receive);
+    transfer_byte(fd, &data2, &receive);
+    printf("0x05? %u\n", receive);
+    usleep(10000);
+}
+
+void read_config_variable(int fd)
+{
+    int i;
+    unsigned char data = 0x3C, receive;
+    unsigned int bin_boun[50] = {}, bin_diameter[50] = {}, bin_wei[48] = {}, setting[20] = {};
+    transfer_byte(fd, &data, &receive);
+    usleep(10000);
+    while(receive != 0xF3)
+    {
+        printf("Received byte: %.2X\n", receive);
+        usleep(20);
+        transfer_byte(fd, &data, &receive);
+    }
+    printf("Ready, Read Config Var: %.2X\n", receive);
+
+    for(i = 0; i < 50; i++)
+        {
+            transfer_byte(fd, &data, &receive);
+            printf("Received byte: %.2X\n", receive);
+            bin_boun[i] = receive;
+            usleep(20);
+        }
+    for(i = 0; i < 50; i++)
+        {
+            printf("Bin Boundaries ADC: %d\n ", bin_boun[i]);
+        }
+
+    for(i = 0; i < 50; i++)
+        {
+            transfer_byte(fd, &data, &receive);
+            printf("Received byte: %.2X\n", receive);
+            bin_diameter[i] = receive;
+            usleep(20);
+        }
+    for(i = 0; i < 50; i++)
+        {
+            printf("Bin Boundaries diameter: %d\n ", bin_diameter[i]);
+        }
+
+    for(i = 0; i < 48; i++)
+        {
+            transfer_byte(fd, &data, &receive);
+            printf("Received byte: %.2X\n", receive);
+            bin_wei[i] = receive;
+            usleep(20);
+        }
+    for(i = 0; i < 48; i++)
+        {
+            printf("Bin Weightings: %d\n ", bin_wei[i]);
+        }
+
+    for(i = 0; i < 20; i++)
+        {
+            transfer_byte(fd, &data, &receive);
+            printf("Received byte: %.2X\n", receive);
+            setting[i] = receive;
+            usleep(20);
+        }
+    for(i = 0; i < 20; i++)
+        {
+            printf("Settings: %d\n ", setting[i]);
+        }
 }
